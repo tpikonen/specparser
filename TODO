@@ -1,0 +1,4 @@
+- More unit tests
+- Use a decent documentation framework
+- Improve documentation
+- Implement moving to an arbitratry scan and arbitrary point inside a scan
