@@ -59,7 +59,7 @@ class specparser:
     def __getline(self):
         """Return the next line, or raise InputTimeout exception"""
         try:
-            self._curline = (self.fid.next())[:-1] # Clip the newline
+            self.__curline = (self.__fid.next())[:-1] # Clip the newline
             self.lineno = self.lineno + 1
         except StopIteration:
             if self.timeout <= 0.0:
@@ -68,16 +68,16 @@ class specparser:
             while True:
                 time.sleep(WAITTIME)
                 try:
-                    self._curline = self.fid.next()
+                    self.__curline = self.__fid.next()
                     break
                 except StopIteration:
                     if (time.clock() - starttime) > self.timeout:
                         raise(InputTimeout)
-        return self._curline
+        return self.__curline
 
 
     def __parse_motornames(self):
-        cl = self._curline
+        cl = self.__curline
         n = 0
         motorlist = []
         while True:
@@ -95,7 +95,7 @@ class specparser:
 
 
     def __parse_motorpositions(self):
-        cl = self._curline
+        cl = self.__curline
         n = 0
         poslist = []
         while True:
@@ -112,7 +112,7 @@ class specparser:
 
 
     def __parse_fourc(self):
-        cl = self._curline
+        cl = self.__curline
         fourclist = [None, None, None, None, None] # FIXME: More than 5?
         while True:
             m = re.match('^#([A-Z]+[A-Z0-9]*) *(.*[^\W]).*$', cl)
@@ -152,7 +152,7 @@ class specparser:
         logging.debug("Parsing header")
         hdict = {}
         hdict['unknown_headers'] = []
-        cl = self._curline
+        cl = self.__curline
         while is_blankline(cl):
             try:
                 cl = self.__getline()
@@ -177,7 +177,7 @@ class specparser:
                     time.mktime(time.strptime(lval)))
             elif ltype == 'O0':
                 hdict['motornames'] = self.__parse_motornames()
-                cl = self._curline
+                cl = self.__curline
                 continue # Start again with the last line
             else:
                 # Unknown line of format #XXnn
@@ -228,7 +228,7 @@ class specparser:
         """Return a dictionary with the contents of the header of the
         next scan in the parsed file, or InputTimeout"""
         self.state = self.in_scan_header
-        cl = self._curline
+        cl = self.__curline
         while cl[0:2] != '#S':
             if not is_blankline(cl):
                 logging.warning('Garbage before scan header: %s' % cl)
@@ -269,7 +269,7 @@ class specparser:
             elif ltype == 'G0':
                 # Four-circle parameters
                 sdict['fourc'] = self.__parse_fourc()
-                cl = self._curline
+                cl = self.__curline
                 continue # Start again with the last line
             elif ltype == 'Q':
                 # HKL coordinates at the start of the scan
@@ -277,7 +277,7 @@ class specparser:
             elif ltype == 'P0':
                 # Motor position at the start of the scan
                 sdict['motorpositions'] = self.__parse_motorpositions()
-                cl = self._curline
+                cl = self.__curline
                 continue
             elif ltype == 'N':
                 # Number of columns in a scan
@@ -301,7 +301,7 @@ class specparser:
         """Return a list with values of the next point on the scan,
         or raise either InputTimeout or ScanEnd exception"""
         self.state = self.in_line
-        cl = self._curline
+        cl = self.__curline
         while True:
             if is_blankline(cl):
                 self.state = self.between_scans
