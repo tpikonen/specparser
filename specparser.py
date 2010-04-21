@@ -64,7 +64,7 @@ class specparser:
     def __init__(self, fid):
         """Create a specparser instance from a file object."""
         self.__fid = fid
-        self.state = initialized
+        self.state = self.initialized
         # Time (in seconds) to wait for the next line before giving up
         self.timeout = 0
         # Copies of spec-file header, current scan header
