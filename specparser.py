@@ -3,7 +3,7 @@ import re, logging, time, datetime
 
 # Exceptions emitted by the parser
 class ParseError(Exception):
-    """Raised when the parser encounters a line which is really broken"""
+    """Raised when the parser encounters a line which it cannot interpret"""
     def __init__(self, line):
         self.line = line
     def __str__(self):
@@ -24,8 +24,33 @@ def is_blankline(line):
 WAITTIME = 1.0
 
 class specparser:
-    """Parses a scan file from SPEC. The parser can also be used while
-    the scan file is being written.
+    """Parses a scan file from SPEC.
+
+    The parser can also be used while the scan file is being written.
+
+    Instance variables:
+
+    :attr:`state`
+        The current state of the parser, one of (self.)initialized,
+        in_header, between_scans, in_scan_header, in_scan, in_line,
+        done.
+
+    :attr:`timeout`
+        Time in seconds to wait for more input, when reading in an
+        incomplete file
+
+    :attr:`fileheader`
+        Header dictionary of the spec-file. Available, if it has been
+        previously read with the :meth:`header` method.
+
+    :attr:`scanheader`
+        Header of the last read scan.
+
+    :attr:`points`
+        List of points which have been read so far from the current scan.
+
+    :attr:`lineno`
+        Current position in the file as line number.
 
     See http://www.certif.com/spec_manual/user_1_4_1.html for a rough
     description of the file format.
@@ -37,6 +62,7 @@ class specparser:
 
 # Constructor and destructor
     def __init__(self, fid):
+        """Create a specparser instance from a file object."""
         self.__fid = fid
         self.state = initialized
         # Time (in seconds) to wait for the next line before giving up
@@ -199,14 +225,14 @@ class specparser:
         parsed file, or a Timeout exception.
 
         In addition to the keys in the scan header
-        (see :method:`next_scan_header` for the scan header keys) the
+        (see :meth:`next_scan_header` for the scan header keys) the
         following keys and values are present
 
         ==============  ================
         key             value
         ==============  ================
-        points          list of point lists
-        point_comments  list of [pointnum, commentline] lists
+        points          list of point lists, see :meth:`next_point`
+        point_comments  list of [pointnumber, commentline] lists
         ==============  ================
 
         If the complete scan is not written to the spec-file after waiting
@@ -225,8 +251,32 @@ class specparser:
 
 
     def next_scan_header(self):
-        """Return a dictionary with the contents of the header of the
-        next scan in the parsed file, or InputTimeout"""
+        """Return a dictionary with the contents of the next scan header.
+
+        Can raise InputTimeout if a complete header can not be read.
+
+        The keys corresponding to spec-file header lines are
+
+        ======  =============== =====
+        SPEC    key             value
+        ======  =============== =====
+        #S      number          integer, number of scan
+        #S      command         string, the spec command which started the scan
+        #D      date            date in :mod:`datetime` format
+        #T      time            float, time per scan point
+        #T      time_units      string, units of time
+        #M      monitor         float, monitor counts per scan point
+        #M      monitor_units   string, units of monitor counts
+        N/A     counting-to     either 'time' or 'monitor' depending on which was used to end counting
+        #Gn     fourc           List of four lists giving four-circle parameters
+        #Q      hklstart        List of HKL coordinates at the start of the scan
+        #Pn     motorpositions  List of motor positions (floats) at the start of the scan
+        #N      ncols           integer, number of columns in a single scan point
+        #L      columns         Names of the columns in the scan
+        #x      unknown_headers List of [lineno, linestring] headers not recognized
+        ======  =============== =====
+
+        """
         self.state = self.in_scan_header
         cl = self.__curline
         while cl[0:2] != '#S':
@@ -298,8 +348,9 @@ class specparser:
 
 
     def next_point(self):
-        """Return a list with values of the next point on the scan,
-        or raise either InputTimeout or ScanEnd exception"""
+        """Return a list with float values of the next point on the scan.
+
+        Can raise either InputTimeout or ScanEnd exception."""
         self.state = self.in_line
         cl = self.__curline
         while True:
@@ -334,7 +385,20 @@ class specparser:
 
 
     def parse(self):
-        """Returns the specfile (possibly incomplete) in a dictionary"""
+        """Return a dictionary with the information of the specfile.
+
+        This function will return after waiting :attr:`timeout` seconds
+        and can return an incomplete dictionary.
+
+        The complete dictionary has the following keys:
+
+        ==============  ================
+        key             value
+        ==============  ================
+        header          header dictionary of the spec-file, see :meth:`header`
+        scans           list of scan dictionaries, see :meth:`next_scan`
+        ==============  ================
+        """
         specdict = {}
         scans = []
         try:
