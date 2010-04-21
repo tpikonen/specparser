@@ -37,7 +37,7 @@ class specparser:
 
 # Constructor and destructor
     def __init__(self, fid):
-        self.fid = fid
+        self.__fid = fid
         self.state = initialized
         # Time (in seconds) to wait for the next line before giving up
         self.timeout = 0
@@ -52,7 +52,7 @@ class specparser:
         self.__getline()
 
     def __del__(self):
-        self.fid.close()
+        self.__fid.close()
 
 # Private methods
 
