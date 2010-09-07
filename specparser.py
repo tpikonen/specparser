@@ -280,7 +280,9 @@ class specparser:
         self.state = self.in_scan_header
         cl = self.__curline
         while cl[0:2] != '#S':
-            if not is_blankline(cl):
+            if cl[0:2] == '#O' or cl[0:2] == '#C':
+                pass
+            elif not is_blankline(cl):
                 logging.warning('Garbage before scan header: %s' % cl)
             cl = self.__getline()
         logging.debug("Parsing scan header")
