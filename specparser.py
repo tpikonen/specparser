@@ -26,7 +26,7 @@ WAITTIME = 1.0
 class specparser:
     """Parses a scan file from SPEC.
 
-    The parser can also be used while the scan file is being written.
+    This parser can also be used while the scan file is being written.
 
     Instance variables:
 
@@ -48,6 +48,14 @@ class specparser:
 
     :attr:`points`
         List of points which have been read so far from the current scan.
+
+    :attr:`counters`
+        Dictionary with counter names (scan columns) as keys. The values
+        are lists of point values read so far from the current scan.
+        This variable contains the same information as `points`, but
+        organized by counter name instead of index. Counter indices can
+        shift for example when the number of motors used for the scan changes
+        (i.e. meshscan vs. ascan).
 
     :attr:`lineno`
         Current position in the file as line number.
@@ -233,6 +241,8 @@ class specparser:
         ==============  ================
         points          list of point lists, see :meth:`next_point`
         point_comments  list of [pointnumber, commentline] lists
+        counters        dictionary with counter names as keys,
+                        lists of counter values at each point as values.
         ==============  ================
 
         If the complete scan is not written to the spec-file after waiting
@@ -247,6 +257,7 @@ class specparser:
             pass
         sdict = self.scanheader
         sdict['points'] = self.points
+        sdict['counters'] = self.counters
         return sdict
 
 
@@ -345,6 +356,9 @@ class specparser:
             cl = self.__getline()
         self.scanheader = sdict
         self.points = []
+        self.counters = {}
+        for c in sdict['columns']:
+            self.counters[c] = []
         self.state = self.in_scan
         return sdict
 
@@ -383,6 +397,8 @@ class specparser:
                     self.state = self.between_scans
                     raise(ScanEnd)
         self.points.append(pts)
+        for i in range(len(self.scanheader['columns'])):
+            self.counters[self.scanheader['columns'][i]].append(pts[i])
         return pts
 
 
