@@ -385,6 +385,9 @@ class Specparser:
                     raise ParseError(cl)
                 else:
                     self.state = self.in_scan
+                    self.points.append(pts)
+                    for i in range(len(self.scanheader['columns'])):
+                        self.counters[self.scanheader['columns'][i]].append(pts[i])
                     cl = self.__getline()
                     break # Got our line
             except ValueError:
@@ -401,9 +404,7 @@ class Specparser:
                     # Control line other than a comment ends the scan
                     self.state = self.between_scans
                     raise(ScanEnd)
-        self.points.append(pts)
-        for i in range(len(self.scanheader['columns'])):
-            self.counters[self.scanheader['columns'][i]].append(pts[i])
+
         return pts
 
 
