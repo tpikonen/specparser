@@ -23,7 +23,7 @@ def is_blankline(line):
 
 WAITTIME = 1.0
 
-class specparser:
+class Specparser:
     """Parses a scan file from SPEC.
 
     This parser can also be used while the scan file is being written.

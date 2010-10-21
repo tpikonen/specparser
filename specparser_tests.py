@@ -15,7 +15,7 @@ def headerparse_t(p):
 def separate_test():
     fname = 'mini.spec'
     fid = open(fname)
-    p = sp.specparser(fid)
+    p = sp.Specparser(fid)
     assert(p.state == p.initialized)
     headerparse_t(p)
     assert(p.state == p.between_scans)
@@ -24,10 +24,10 @@ def separate_test():
 def nonnil_points_test():
     fname = 'mini.spec'
     fid = open(fname)
-    p = sp.specparser(fid)
+    p = sp.Specparser(fid)
     fname = 'mini.spec'
     fid = open(fname)
-    p = sp.specparser(fid)
+    p = sp.Specparser(fid)
     ms = p.parse()
     for s in ms['scans']:
         for p in s['points']:
@@ -37,7 +37,7 @@ def nonnil_points_test():
 def pickled_test():
     import pickle
     fs = open('mini.spec')
-    p = sp.specparser(fs)
+    p = sp.Specparser(fs)
     ms = p.parse()
     fp = open('mini.pickle')
     mp = pickle.load(fp)

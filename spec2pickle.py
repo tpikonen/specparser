@@ -1,7 +1,7 @@
 import sys, specparser, pickle
 
 def spec2pickle(infname, outfname):
-    p = specparser.specparser(open(infname))
+    p = specparser.Specparser(open(infname))
     dd = p.parse()
     fout = open(outfname, 'w')
     pickle.dump(dd, fout)
