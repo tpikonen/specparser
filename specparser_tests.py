@@ -1,3 +1,4 @@
+from __future__ import with_statement
 import specparser as sp
 import datetime, time
 
@@ -14,19 +15,17 @@ def headerparse_t(p):
 
 
 def separate_test():
-    fname = datadir + 'mini.spec'
-    fid = open(fname)
-    p = sp.Specparser(fid)
-    assert(p.state == p.initialized)
-    headerparse_t(p)
-    assert(p.state == p.between_scans)
-    fid.close()
+    with open(datadir + 'mini.spec') as fid:
+        p = sp.Specparser(fid)
+        assert(p.state == p.initialized)
+        headerparse_t(p)
+        assert(p.state == p.between_scans)
+
 
 def nonnil_points_test():
-    fname = datadir + 'mini.spec'
-    fid = open(fname)
-    p = sp.Specparser(fid)
-    ms = p.parse()
+    with open(datadir + 'mini.spec') as fid:
+        p = sp.Specparser(fid)
+        ms = p.parse()
     for s in ms['scans']:
         for p in s['points']:
             assert(p != [])
@@ -34,13 +33,11 @@ def nonnil_points_test():
 
 def pickled_test():
     import pickle
-    fs = open(datadir + 'mini.spec')
-    p = sp.Specparser(fs)
-    ms = p.parse()
-    fp = open(datadir + 'mini.pickle')
-    mp = pickle.load(fp)
-    fs.close()
-    fp.close()
+    with open(datadir + 'mini.spec') as fid:
+        p = sp.Specparser(fid)
+        ms = p.parse()
+    with open(datadir + 'mini.pickle') as fp:
+        mp = pickle.load(fp)
     for k in ms['header'].keys():
         print(k)
         assert(ms['header'][k] == mp['header'][k])
