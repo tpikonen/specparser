@@ -161,6 +161,13 @@ class Specparser:
         return fourclist
 
 
+    def __construct_scandict(self):
+        sdict = self.scanheader
+        sdict['points'] = self.points
+        sdict['counters'] = self.counters
+        return sdict
+
+
 # Public methods
 
     def header(self):
@@ -255,10 +262,8 @@ class Specparser:
                 self.next_point()
         except ScanEnd:
             pass
-        sdict = self.scanheader
-        sdict['points'] = self.points
-        sdict['counters'] = self.counters
-        return sdict
+
+        return self.__construct_scandict()
 
 
     def next_scan_header(self):
@@ -424,6 +429,12 @@ class Specparser:
             while True:
                 scans.append(self.next_scan())
         except InputTimeout:
+            if self.state == self.in_scan \
+                and scans[-1]['number'] == self.scanheader['number']-1:
+                # Append the last, possibly incomplete scan
+                scans.append(self.__construct_scandict())
+            elif scans[-1]['number'] != self.scanheader['number']:
+                raise ParseError()
             specdict['scans'] = scans
         self.state = self.done
         return specdict
