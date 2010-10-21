@@ -341,7 +341,7 @@ class Specparser:
                 continue # Start again with the last line
             elif ltype == 'Q':
                 # HKL coordinates at the start of the scan
-                sdict['hklstart'] = map(int, lval.split())
+                sdict['hklstart'] = map(float, lval.split())
             elif ltype == 'P0':
                 # Motor position at the start of the scan
                 sdict['motorpositions'] = self.__parse_motorpositions()
