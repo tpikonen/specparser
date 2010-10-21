@@ -47,3 +47,12 @@ def pickled_test():
             print('    %s' % k)
             assert(ms['scans'][i][k] == mp['scans'][i][k])
     assert(mp == ms)
+
+
+def read_simple_test():
+    with open(datadir + 'simple.spec') as fid:
+        p = sp.Specparser(fid)
+        assert(p.state == p.initialized)
+        d = p.parse()
+        assert(p.state == p.done)
+        assert(len(d['scans'][2]['points']) == 101)
