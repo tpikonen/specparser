@@ -1,6 +1,7 @@
 import specparser as sp
 import datetime, time
 
+datadir = './testdata/'
 
 def headerparse_t(p):
     h = p.header()
@@ -13,33 +14,30 @@ def headerparse_t(p):
 
 
 def separate_test():
-    fname = 'mini.spec'
+    fname = datadir + 'mini.spec'
     fid = open(fname)
     p = sp.Specparser(fid)
     assert(p.state == p.initialized)
     headerparse_t(p)
     assert(p.state == p.between_scans)
-    fid.close() 
+    fid.close()
 
 def nonnil_points_test():
-    fname = 'mini.spec'
-    fid = open(fname)
-    p = sp.Specparser(fid)
-    fname = 'mini.spec'
+    fname = datadir + 'mini.spec'
     fid = open(fname)
     p = sp.Specparser(fid)
     ms = p.parse()
     for s in ms['scans']:
         for p in s['points']:
             assert(p != [])
-    
+
 
 def pickled_test():
     import pickle
-    fs = open('mini.spec')
+    fs = open(datadir + 'mini.spec')
     p = sp.Specparser(fs)
     ms = p.parse()
-    fp = open('mini.pickle')
+    fp = open(datadir + 'mini.pickle')
     mp = pickle.load(fp)
     fs.close()
     fp.close()
