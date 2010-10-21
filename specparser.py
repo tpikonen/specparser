@@ -430,11 +430,12 @@ class Specparser:
             while True:
                 scans.append(self.next_scan())
         except InputTimeout:
-            if self.state == self.in_scan \
-                and scans[-1]['number'] == self.scanheader['number']-1:
+            if self.state == self.in_scan and (scans == [] \
+                or scans[-1]['number'] == self.scanheader['number']-1):
                 # Append the last, possibly incomplete scan
                 scans.append(self.__construct_scandict())
-            elif scans[-1]['number'] != self.scanheader['number']:
+            elif scans != [] \
+                and scans[-1]['number'] != self.scanheader['number']:
                 raise ParseError()
             specdict['scans'] = scans
         self.state = self.done
