@@ -77,3 +77,13 @@ def oneline_test():
     assert(d['header']['epoch'] == 974979799)
     assert(len(d['scans']) == 1)
     assert(len(d['scans'][0]['points'][0]) == 9)
+
+
+def comment_end_test():
+    with open(datadir + 'endcomment.spec') as fid:
+        p = sp.Specparser(fid)
+        assert(p.state == p.initialized)
+        d = p.parse()
+        assert(p.state == p.done)
+        assert(len(d['scans']) == 2)
+
