@@ -399,6 +399,7 @@ class Specparser:
                     # Add line comments to header
                     self.scanheader['point_comments'].append(\
                         [len(self.points), cl])
+                    self.state = self.in_scan
                     cl = self.__getline()
                 else:
                     # Control line other than a comment ends the scan
