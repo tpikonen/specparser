@@ -1,7 +1,7 @@
 import sys, specparser, yaml
 
 def spec2yaml(infname, outfname):
-    p = specparser.specparser(open(infname))
+    p = specparser.Specparser(open(infname))
     dd = p.parse()
     fout = open(outfname, 'w')
     yaml.dump(dd, fout)
