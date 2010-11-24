@@ -1,6 +1,9 @@
 import re, logging, time, datetime
 
 
+# FIXME: Allow multiple headers (for SPEC restarts etc.)
+
+
 # Exceptions emitted by the parser
 class ParseError(Exception):
     """Raised when the parser encounters a line which it cannot interpret"""
@@ -43,24 +46,9 @@ class Specparser:
         Header dictionary of the spec-file. Available, if it has been
         previously read with the :meth:`header` method.
 
-    :attr:`scanheader`
-        Header of the scan which is currently being read, or was read
+    :attr:`curscan`
+        The scan dictionary which is currently being read to, or was read
         last.
-
-    :attr:`npoints`
-        Number of points read so far in the current scan.
-
-    :attr:`counters`
-        Counter values for the current scan. A dictionary with counter
-        names (scan columns) as keys. The values are lists of point values
-        which have been read so far from the current scan.
-        The number of counter keys can vary from one scan to another,
-        for example when the number of motors used for the scan changes
-        (i.e. meshscan vs. ascan), or when new counters are added or
-        removed in SPEC configuration.
-
-    :attr:`lastpoint`
-        List of values from the last point read from the current scan.
 
     :attr:`lineno`
         Current position in the file as line number.
@@ -83,10 +71,7 @@ class Specparser:
         # Copies of spec-file header, current scan header
         # and points of the current line in scan
         self.fileheader = None
-        self.scanheader = None
-        self.npoints = None
-        self.counters = None
-        self.lastpoint = None
+        self.curscan = None
         self.lineno = -1
         # Private variables
         self.__curline = None
@@ -174,13 +159,6 @@ class Specparser:
         return fourclist
 
 
-    def __construct_scandict(self):
-        sdict = self.scanheader
-        sdict['npoints'] = self.npoints
-        sdict['counters'] = self.counters
-        return sdict
-
-
 # Public methods
 
     def header(self):
@@ -191,11 +169,12 @@ class Specparser:
         ======  =============== =====
         SPEC    key             value
         ======  =============== =====
-        #F      filename        string
-        #E      epoch           int, seconds since epoch
-        #D      date            date in datetime format
-        #On     motornames      list of strings
-        #x      unknown_headers list of [lineno, linestring] lists
+        #F      filename        String, original filename.
+        #E      epoch           Int, seconds since epoch.
+        #D      date            Date in datetime format.
+        #On     motornames      List of motorname strings.
+        #C      comments        List of [lineno, commentline] lists.
+        #x      unknown_headers List of [lineno, linestring] lists.
         ======  =============== =====
 
         If the complete header is not written to the spec-file after waiting
@@ -205,6 +184,7 @@ class Specparser:
         self.state = self.in_header
         logging.debug("Parsing header")
         hdict = {}
+        hdict['comments'] = []
         hdict['unknown_headers'] = []
         cl = self.__curline
         while is_blankline(cl):
@@ -233,6 +213,9 @@ class Specparser:
                 hdict['motornames'] = self.__parse_motornames()
                 cl = self.__curline
                 continue # Start again with the last line
+            elif ltype == 'C':
+                # Comments before the first scan
+                hdict['comments'].append([self.lineno, cl])
             else:
                 # Unknown line of format #XXnn
                 logging.info('Unknown header: %s' % cl)
@@ -266,7 +249,7 @@ class Specparser:
         except ScanEnd:
             pass
 
-        return self.__construct_scandict()
+        return self.curscan
 
 
     def next_scan_header(self):
@@ -299,7 +282,7 @@ class Specparser:
         N/A     npoints         Number of points in the scan (so far).
         N/A     counters        Dictionary with counter names as keys,
                                 lists of counter values at each point as values.
-        #C      comments        List of [pointnumber, commentline] lists.
+        #C      comments        List of [lineno, commentline, pointno] lists.
         ======  =============== =====
 
         """
@@ -312,12 +295,9 @@ class Specparser:
                 logging.warning('Garbage before scan header: %s' % cl)
             cl = self.__getline()
         self.state = self.in_scan_header
-        self.npoints = 0
-        self.lastpoint = None
         logging.debug("Parsing scan header")
         sdict = {}
         sdict['npoints'] = 0
-        sdict['counters'] = {}
         sdict['comments'] = []
         sdict['unknown_headers'] = []
         while True:
@@ -369,15 +349,19 @@ class Specparser:
                 # Motor names in the scan
                 lclean = re.search('\W*(.*[^\W]+).*', lval).group(1)
                 sdict['columns'] = re.split('  +', lclean)
+            elif ltype == 'C':
+                # Comments before the first scan point
+                sdict['comments'].append([self.lineno, cl, sdict['npoints']-1])
             else:
                 # Unknown line of format #XXnn
                 logging.info('Unknown scan header: %s' % cl)
                 sdict['unknown_headers'].append([self.lineno, cl])
             cl = self.__getline()
-        self.scanheader = sdict
-        self.counters = {}
+        counters = {}
         for c in sdict['columns']:
-            self.counters[c] = []
+            counters[c] = []
+        sdict['counters'] = counters
+        self.curscan = sdict
         self.state = self.in_scan
         return sdict
 
@@ -394,15 +378,15 @@ class Specparser:
                 raise(ScanEnd)
             try:
                 pts = map(float, cl.split())
-                if len(pts) != self.scanheader['ncols']:
+                if len(pts) != self.curscan['ncols']:
                     logging.error("Invalid number of columns in line")
                     raise ParseError(cl)
                 else:
                     self.state = self.in_scan
                     self.lastpoint = pts
-                    self.npoints += 1
-                    for i in range(len(self.scanheader['columns'])):
-                        self.counters[self.scanheader['columns'][i]].append(pts[i])
+                    self.curscan['npoints'] += 1
+                    for ctr, val in zip(self.curscan['columns'], pts):
+                        self.curscan['counters'][ctr].append(val)
                     cl = self.__getline()
                     break # Got our line
             except ValueError:
@@ -412,8 +396,8 @@ class Specparser:
                     raise ParseError(cl)
                 if m.group(1) == 'C':
                     # Add line comments to header
-                    self.scanheader['comments'].append(\
-                        [self.npoints-1, cl])
+                    self.curscan['comments'].append(\
+                        [self.lineno, cl, self.curscan['npoints']-1])
                     self.state = self.in_scan
                     cl = self.__getline()
                 else:
@@ -447,11 +431,11 @@ class Specparser:
                 scans.append(self.next_scan())
         except InputTimeout:
             if self.state == self.in_scan and (scans == [] \
-                or scans[-1]['number'] == self.scanheader['number']-1):
+                or scans[-1]['number'] == self.curscan['number']-1):
                 # Append the last, possibly incomplete scan
-                scans.append(self.__construct_scandict())
+                scans.append(self.curscan)
             elif scans != [] \
-                and scans[-1]['number'] != self.scanheader['number']:
+                and scans[-1]['number'] != self.curscan['number']:
                 raise ParseError()
             specdict['scans'] = scans
         self.state = self.done
