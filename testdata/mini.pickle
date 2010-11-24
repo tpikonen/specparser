@@ -252,12 +252,9 @@ ssS'scans'
 p127
 (lp128
 (dp129
-S'point_comments'
+S'motorpositions'
 p130
 (lp131
-sS'motorpositions'
-p132
-(lp133
 F0.0
 aF5.1909999999999998
 aF0.0
@@ -369,11 +366,14 @@ aF0.0
 aF55.999997999999998
 aF-0.37374998999999998
 asS'ncols'
-p134
+p132
 I11
 sS'number'
-p135
+p133
 I1
+sS'comments'
+p134
+(lp135
 sS'time_units'
 p136
 S'(Seconds)'
@@ -1409,16 +1409,6 @@ p221
 sa(dp223
 g130
 (lp224
-(lp225
-I26
-aS'#C Thu Feb 25 14:45:25 2010.  Scan aborted after 26 points.'
-p226
-aa(lp227
-I26
-aS'#C Thu Feb 25 14:50:38 2010.  scaty reset from -5.40812 to 0.'
-p228
-aasg132
-(lp229
 F0.0
 aF5.1909999999999998
 aF0.0
@@ -1529,11 +1519,21 @@ aF95.000004000000004
 aF0.0
 aF55.999997999999998
 aF-20.401875
-asg134
+asg132
 I11
-sg135
+sg133
 I2
-sg136
+sg134
+(lp225
+(lp226
+I26
+aS'#C Thu Feb 25 14:45:25 2010.  Scan aborted after 26 points.'
+p227
+aa(lp228
+I26
+aS'#C Thu Feb 25 14:50:38 2010.  scaty reset from -5.40812 to 0.'
+p229
+aasg136
 S'(Seconds)'
 p230
 sg138
@@ -2214,8 +2214,6 @@ asg221
 sa(dp293
 g130
 (lp294
-sg132
-(lp295
 F0.0
 aF5.2069999999999999
 aF0.0
@@ -2326,10 +2324,12 @@ aF95.000004000000004
 aF0.0
 aF35.999997999999998
 aF0.0
-asg134
+asg132
 I11
-sg135
+sg133
 I3
+sg134
+(lp295
 sg136
 S'(Seconds)'
 p296
