@@ -27,8 +27,8 @@ def nonnil_points_test():
         p = sp.Specparser(fid)
         ms = p.parse()
     for s in ms['scans']:
-        for p in s['points']:
-            assert(p != [])
+        for val in s['counters'].values():
+            assert(val != [])
 
 
 def pickled_test():
@@ -55,7 +55,8 @@ def read_simple_test():
         assert(p.state == p.initialized)
         d = p.parse()
         assert(p.state == p.done)
-        assert(len(d['scans'][2]['points']) == 101)
+        for val in d['scans'][2]['counters'].values():
+            assert(len(val) == 101)
 
 
 def zeroline_test():
@@ -76,7 +77,7 @@ def oneline_test():
         assert(p.state == p.done)
     assert(d['header']['epoch'] == 974979799)
     assert(len(d['scans']) == 1)
-    assert(len(d['scans'][0]['points'][0]) == 9)
+    assert(len(d['scans'][0]['counters'].values()) == 9)
 
 
 def comment_end_test():
