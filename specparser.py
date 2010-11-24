@@ -157,7 +157,7 @@ class Specparser:
 
     def __parse_fourc(self):
         cl = self.__curline
-        fourclist = [None, None, None, None, None] # FIXME: More than 5?
+        fdict = {}
         while True:
             m = re.match('^#([A-Z]+[A-Z0-9]*) *(.*[^\W]).*$', cl)
             if m == None:
@@ -166,8 +166,11 @@ class Specparser:
             if ltype[0] != 'G':
                 break
             ind = int(ltype[1])
-            fourclist[ind] = map(float, lval.split())
+            fdict[ind] = map(float, lval.split())
             cl = self.__getline()
+        keys = fdict.keys()
+        keys.sort()
+        fourclist = [ fdict[k] for k in keys ]
         return fourclist
 
 
