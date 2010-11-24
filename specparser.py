@@ -247,7 +247,7 @@ class Specparser:
         key             value
         ==============  ================
         points          list of point lists, see :meth:`next_point`
-        point_comments  list of [pointnumber, commentline] lists
+        comments        list of [pointnumber, commentline] lists
         counters        dictionary with counter names as keys,
                         lists of counter values at each point as values.
         ==============  ================
@@ -304,7 +304,7 @@ class Specparser:
         logging.debug("Parsing scan header")
         sdict = {}
         sdict['unknown_headers'] = []
-        sdict['point_comments'] = []
+        sdict['comments'] = []
         while True:
             m = re.match('^#([A-Z]+[0-9]*) (.*)$', cl)
             if m == None:
@@ -397,7 +397,7 @@ class Specparser:
                     raise ParseError(cl)
                 if m.group(1) == 'C':
                     # Add line comments to header
-                    self.scanheader['point_comments'].append(\
+                    self.scanheader['comments'].append(\
                         [len(self.points), cl])
                     self.state = self.in_scan
                     cl = self.__getline()
