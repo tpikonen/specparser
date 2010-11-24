@@ -44,18 +44,23 @@ class Specparser:
         previously read with the :meth:`header` method.
 
     :attr:`scanheader`
-        Header of the last read scan.
+        Header of the scan which is currently being read, or was read
+        last.
 
-    :attr:`points`
-        List of points which have been read so far from the current scan.
+    :attr:`npoints`
+        Number of points read so far in the current scan.
 
     :attr:`counters`
-        Dictionary with counter names (scan columns) as keys. The values
-        are lists of point values read so far from the current scan.
-        This variable contains the same information as `points`, but
-        organized by counter name instead of index. Counter indices can
-        shift for example when the number of motors used for the scan changes
-        (i.e. meshscan vs. ascan).
+        Counter values for the current scan. A dictionary with counter
+        names (scan columns) as keys. The values are lists of point values
+        which have been read so far from the current scan.
+        The number of counter keys can vary from one scan to another,
+        for example when the number of motors used for the scan changes
+        (i.e. meshscan vs. ascan), or when new counters are added or
+        removed in SPEC configuration.
+
+    :attr:`lastpoint`
+        List of values from the last point read from the current scan.
 
     :attr:`lineno`
         Current position in the file as line number.
@@ -79,14 +84,19 @@ class Specparser:
         # and points of the current line in scan
         self.fileheader = None
         self.scanheader = None
-        self.points = None
+        self.npoints = None
+        self.counters = None
+        self.lastpoint = None
         self.lineno = -1
         # Private variables
         self.__curline = None
+        # Get first line
         self.__getline()
+
 
     def __del__(self):
         self.__fid.close()
+
 
 # Private methods
 
@@ -163,7 +173,7 @@ class Specparser:
 
     def __construct_scandict(self):
         sdict = self.scanheader
-        sdict['points'] = self.points
+        sdict['npoints'] = self.npoints
         sdict['counters'] = self.counters
         return sdict
 
@@ -239,18 +249,8 @@ class Specparser:
         """Return a dictionary with the contents of the next scan in the
         parsed file, or a Timeout exception.
 
-        In addition to the keys in the scan header
-        (see :meth:`next_scan_header` for the scan header keys) the
-        following keys and values are present
-
-        ==============  ================
-        key             value
-        ==============  ================
-        points          list of point lists, see :meth:`next_point`
-        comments        list of [pointnumber, commentline] lists
-        counters        dictionary with counter names as keys,
-                        lists of counter values at each point as values.
-        ==============  ================
+        See :meth:`next_scan_header` for the keys in the return value
+        dictionary.
 
         If the complete scan is not written to the spec-file after waiting
         :attr:`timeout` seconds, then the scan dictionary will be returned
@@ -276,35 +276,47 @@ class Specparser:
         ======  =============== =====
         SPEC    key             value
         ======  =============== =====
-        #S      number          integer, number of scan
-        #S      command         string, the spec command which started the scan
-        #D      date            date in :mod:`datetime` format
-        #T      time            float, time per scan point
-        #T      time_units      string, units of time
-        #M      monitor         float, monitor counts per scan point
-        #M      monitor_units   string, units of monitor counts
-        N/A     counting-to     either 'time' or 'monitor' depending on which was used to end counting
-        #Gn     fourc           List of four lists giving four-circle parameters
-        #Q      hklstart        List of HKL coordinates at the start of the scan
-        #Pn     motorpositions  List of motor positions (floats) at the start of the scan
-        #N      ncols           integer, number of columns in a single scan point
-        #L      columns         Names of the columns in the scan
-        #x      unknown_headers List of [lineno, linestring] headers not recognized
+        #S      number          Integer, the scan number.
+        #S      command         String, the command which started the scan.
+        #D      date            Date in :mod:`datetime` format.
+        #T      time            Float, time per scan point.
+        #T      time_units      String, units of time.
+        #M      monitor         Float, monitor counts per scan point.
+        #M      monitor_units   String, units of monitor counts.
+        N/A     counting-to     Either 'time' or 'monitor' depending on
+                                which was used to end counting.
+        #Gn     fourc           List of four lists giving four-circle values.
+        #Q      hklstart        List of HKL coords at the start of the scan.
+        #Pn     motorpositions  List of floats giving motor positions at
+                                the start of the scan.
+        #N      ncols           Integer, number of counter columns.
+        #L      columns         Names of the columns in the scan.
+        #x      unknown_headers List of [lineno, linestring] headers which
+                                were not recognized.
+        N/A     npoints         Number of points in the scan (so far).
+        N/A     counters        Dictionary with counter names as keys,
+                                lists of counter values at each point as values.
+        #C      comments        List of [pointnumber, commentline] lists.
         ======  =============== =====
 
         """
-        self.state = self.in_scan_header
         cl = self.__curline
         while cl[0:2] != '#S':
+            # FIXME: Reparse motor positions and add comments to previous scan
             if cl[0:2] == '#O' or cl[0:2] == '#C':
                 pass
             elif not is_blankline(cl):
                 logging.warning('Garbage before scan header: %s' % cl)
             cl = self.__getline()
+        self.state = self.in_scan_header
+        self.npoints = 0
+        self.lastpoint = None
         logging.debug("Parsing scan header")
         sdict = {}
-        sdict['unknown_headers'] = []
+        sdict['npoints'] = 0
+        sdict['counters'] = {}
         sdict['comments'] = []
+        sdict['unknown_headers'] = []
         while True:
             m = re.match('^#([A-Z]+[0-9]*) (.*)$', cl)
             if m == None:
@@ -360,7 +372,6 @@ class Specparser:
                 sdict['unknown_headers'].append([self.lineno, cl])
             cl = self.__getline()
         self.scanheader = sdict
-        self.points = []
         self.counters = {}
         for c in sdict['columns']:
             self.counters[c] = []
@@ -385,7 +396,8 @@ class Specparser:
                     raise ParseError(cl)
                 else:
                     self.state = self.in_scan
-                    self.points.append(pts)
+                    self.lastpoint = pts
+                    self.npoints += 1
                     for i in range(len(self.scanheader['columns'])):
                         self.counters[self.scanheader['columns'][i]].append(pts[i])
                     cl = self.__getline()
@@ -398,7 +410,7 @@ class Specparser:
                 if m.group(1) == 'C':
                     # Add line comments to header
                     self.scanheader['comments'].append(\
-                        [len(self.points), cl])
+                        [self.npoints-1, cl])
                     self.state = self.in_scan
                     cl = self.__getline()
                 else:
