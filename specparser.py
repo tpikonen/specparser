@@ -42,7 +42,14 @@ class Specparser:
         Time in seconds to wait for more input, when reading in an
         incomplete file
 
-    :attr:`fileheader`
+    :attr:`headers`
+        List of (scannumber, headerdict) tuples, where scannumber is the
+        scan before which this header was read.
+
+    :attr:`scans`
+        List of complete scans read so far.
+
+    :attr:`curheader`
         Header dictionary of the spec-file. Available, if it has been
         previously read with the :meth:`header` method.
 
@@ -70,7 +77,10 @@ class Specparser:
         self.timeout = 0
         # Copies of spec-file header, current scan header
         # and points of the current line in scan
-        self.fileheader = None
+        self.headers = []
+        # Make scans start at index 1 like in SPEC to keep things sane
+        self.scans = [None]
+        self.curheader = {}
         self.curscan = None
         self.lineno = -1
         # Private variables
@@ -226,7 +236,8 @@ class Specparser:
                 cl = ''
         if not is_blankline(cl):
             logging.warning("Garbage after header: %s" % cl)
-        self.fileheader = hdict
+        self.curheader.update(hdict)
+        self.headers.append((len(self.scans), hdict))
         self.state = self.between_scans
         return hdict
 
@@ -248,6 +259,7 @@ class Specparser:
                 self.next_point()
         except ScanEnd:
             pass
+        self.scans.append(self.curscan)
 
         return self.curscan
 
@@ -288,11 +300,11 @@ class Specparser:
         """
         cl = self.__curline
         while cl[0:2] != '#S':
-            # FIXME: Reparse motor positions and add comments to previous scan
-            if cl[0:2] == '#O' or cl[0:2] == '#C':
-                pass
-            elif not is_blankline(cl):
-                logging.warning('Garbage before scan header: %s' % cl)
+            if not is_blankline(cl):
+                if cl[0] == '#':
+                    self.header()
+                else:
+                    logging.warning('Garbage before scan header: %s' % cl)
             cl = self.__getline()
         self.state = self.in_scan_header
         logging.debug("Parsing scan header")
@@ -409,35 +421,31 @@ class Specparser:
 
 
     def parse(self):
-        """Return a dictionary with the information of the specfile.
+        """Return a (scans, headers) tuple parsed from the specfile.
 
         This function will return after waiting :attr:`timeout` seconds
-        and can return an incomplete dictionary.
+        and can return an incomplete list of scans.
 
-        The complete dictionary has the following keys:
+        The return tuple (scans, headers) has the following values:
 
-        ==============  ================
-        key             value
-        ==============  ================
-        header          header dictionary of the spec-file, see :meth:`header`
-        scans           list of scan dictionaries, see :meth:`next_scan`
-        ==============  ================
+        scans   : List of scan dictionaries, see :meth:`next_scan`
+        headers : List of (scannumber, headerdict) tuples, where scannumber
+                  is the number of scan before which this header information
+                  was read.
         """
-        specdict = {}
-        scans = []
+        scans = [None]
         try:
-            specdict['header'] = self.header()
+            self.header()
             while True:
                 scans.append(self.next_scan())
         except InputTimeout:
-            if self.state == self.in_scan and (scans == [] \
+            if self.state == self.in_scan and (len(scans) <= 1 \
                 or scans[-1]['number'] == self.curscan['number']-1):
                 # Append the last, possibly incomplete scan
                 scans.append(self.curscan)
-            elif scans != [] \
+            elif len(scans) > 1 \
                 and scans[-1]['number'] != self.curscan['number']:
                 raise ParseError()
-            specdict['scans'] = scans
         self.state = self.done
-        return specdict
+        return scans, self.headers
 
