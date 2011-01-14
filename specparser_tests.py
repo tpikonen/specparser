@@ -25,8 +25,8 @@ def separate_test():
 def nonnil_points_test():
     with open(datadir + 'mini.spec') as fid:
         p = sp.Specparser(fid)
-        ms = p.parse()
-    for s in ms['scans']:
+        scans, hdrs = p.parse()
+    for s in scans[1:]:
         for val in s['counters'].values():
             assert(val != [])
 
@@ -35,27 +35,33 @@ def pickled_test():
     import pickle
     with open(datadir + 'mini.spec') as fid:
         p = sp.Specparser(fid)
-        ms = p.parse()
+        scans, hdrs = p.parse()
     with open(datadir + 'mini.pickle') as fp:
-        mp = pickle.load(fp)
-    for k in ms['header'].keys():
+        pscns, phdrs = pickle.load(fp)
+    assert(phdrs[-1][0] == hdrs[-1][0])
+    hd = hdrs[-1][1]
+    phd = phdrs[-1][1]
+    for k in hd.keys():
         print(k)
-        assert(ms['header'][k] == mp['header'][k])
-    for i in range(len(ms['scans'])):
+        assert(phd[k] == hd[k])
+    assert(hd == phd)
+    for i in range(1, len(scans)):
         print('Scan %d' % i)
-        for k in ms['scans'][i].keys():
+        for k in scans[i].keys():
             print('    %s' % k)
-            assert(ms['scans'][i][k] == mp['scans'][i][k])
-    assert(mp == ms)
+            assert(scans[i][k] == pscns[i][k])
+    assert(pscns == scans)
+    assert(phdrs == hdrs)
+
 
 
 def read_simple_test():
     with open(datadir + 'simple.spec') as fid:
         p = sp.Specparser(fid)
         assert(p.state == p.initialized)
-        d = p.parse()
+        scans, hdrs = p.parse()
         assert(p.state == p.done)
-        for val in d['scans'][2]['counters'].values():
+        for val in scans[2]['counters'].values():
             assert(len(val) == 101)
 
 
@@ -63,28 +69,28 @@ def zeroline_test():
     with open(datadir + 'zeroline.spec') as fid:
         p = sp.Specparser(fid)
         assert(p.state == p.initialized)
-        d = p.parse()
+        scans, hdrs = p.parse()
         assert(p.state == p.done)
-    assert(d['header']['epoch'] == 974979799)
-    assert(d['scans'] == [])
+    assert(hdrs[-1][1]['epoch'] == 974979799)
+    assert(scans == [None])
 
 
 def oneline_test():
     with open(datadir + 'oneline.spec') as fid:
         p = sp.Specparser(fid)
         assert(p.state == p.initialized)
-        d = p.parse()
+        scans, hdrs = p.parse()
         assert(p.state == p.done)
-    assert(d['header']['epoch'] == 974979799)
-    assert(len(d['scans']) == 1)
-    assert(len(d['scans'][0]['counters'].values()) == 9)
+    assert(hdrs[-1][1]['epoch'] == 974979799)
+    assert(len(scans) == 2)
+    assert(len(scans[1]['counters'].values()) == 9)
 
 
 def comment_end_test():
     with open(datadir + 'endcomment.spec') as fid:
         p = sp.Specparser(fid)
         assert(p.state == p.initialized)
-        d = p.parse()
+        scans, hdrs = p.parse()
         assert(p.state == p.done)
-        assert(len(d['scans']) == 2)
+        assert(len(scans) == 3)
 
