@@ -14,6 +14,25 @@ def headerparse_t(p):
     assert(h['motornames'] == mlist)
 
 
+def scanheader_t(scanlist):
+    if scanlist[0] is None:
+        scans = scanlist[1:]
+    else:
+        scans = scanlist
+    for s in scans:
+        assert(s['ncols'] == len(s['columns']))
+
+
+def nonnil_t(scanlist):
+    if scanlist[0] is None:
+        scans = scanlist[1:]
+    else:
+        scans = scanlist
+    for s in scans:
+        for val in s['counters'].values():
+            assert(val != [])
+
+
 def separate_test():
     with open(datadir + 'mini.spec') as fid:
         p = sp.Specparser(fid)
@@ -22,13 +41,12 @@ def separate_test():
         assert(p.state == p.between_scans)
 
 
-def nonnil_points_test():
+def minispec_test():
     with open(datadir + 'mini.spec') as fid:
         p = sp.Specparser(fid)
         scans, hdrs = p.parse()
-    for s in scans[1:]:
-        for val in s['counters'].values():
-            assert(val != [])
+    nonnil_t(scans)
+    scanheader_t(scans)
 
 
 def pickled_test():
@@ -63,6 +81,8 @@ def read_simple_test():
         assert(p.state == p.done)
         for val in scans[2]['counters'].values():
             assert(len(val) == 101)
+        nonnil_t(scans)
+        scanheader_t(scans)
 
 
 def zeroline_test():
@@ -73,6 +93,8 @@ def zeroline_test():
         assert(p.state == p.done)
     assert(hdrs[-1][1]['epoch'] == 974979799)
     assert(scans == [None])
+    nonnil_t(scans)
+    scanheader_t(scans)
 
 
 def oneline_test():
@@ -84,6 +106,8 @@ def oneline_test():
     assert(hdrs[-1][1]['epoch'] == 974979799)
     assert(len(scans) == 2)
     assert(len(scans[1]['counters'].values()) == 9)
+    nonnil_t(scans)
+    scanheader_t(scans)
 
 
 def comment_end_test():
@@ -92,5 +116,7 @@ def comment_end_test():
         assert(p.state == p.initialized)
         scans, hdrs = p.parse()
         assert(p.state == p.done)
-        assert(len(scans) == 3)
+    assert(len(scans) == 3)
+    nonnil_t(scans)
+    scanheader_t(scans)
 
