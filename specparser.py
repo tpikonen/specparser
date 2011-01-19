@@ -1,9 +1,5 @@
 import re, logging, time, datetime
 
-
-# FIXME: Allow multiple headers (for SPEC restarts etc.)
-
-
 # Exceptions emitted by the parser
 class ParseError(Exception):
     """Raised when the parser encounters a line which it cannot interpret"""
@@ -421,17 +417,20 @@ class Specparser:
 
 
     def parse(self):
-        """Return a (scans, headers) tuple parsed from the specfile.
+        """Return a list of scans parsed from the specfile.
 
         This function will return after waiting :attr:`timeout` seconds
         and can return an incomplete list of scans.
 
         The return tuple (scans, headers) has the following values:
 
-        scans   : List of scan dictionaries, see :meth:`next_scan`
-        headers : List of (scannumber, headerdict) tuples, where scannumber
+        The first element of the return list 'scans' is the list of headers,
+        the rest are scan dictionaries.
+
+        scans[0]  List of (scannumber, headerdict) tuples, where scannumber
                   is the number of scan before which this header information
-                  was read.
+                  was read. See :meth:`header`.
+        scans[1:] List of scan dictionaries, see :meth:`next_scan`
         """
         scans = [None]
         try:
@@ -447,5 +446,6 @@ class Specparser:
                 and scans[-1]['number'] != self.curscan['number']:
                 raise ParseError()
         self.state = self.done
-        return scans, self.headers
+        scans[0] = self.headers
+        return scans
 
