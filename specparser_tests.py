@@ -13,6 +13,7 @@ def headerparse_t(p):
     mlist = ['dummy', 'idgap', 'bm1trx', 'bm1try', 'bm2trx', 'bm2try', 'di2trx', 'di2try', 'bm3trx', 'bm3try', 'sl1trxo', 'sl1trxi', 'sl1tryt', 'sl1tryb', 'sl1ch', 'sl1cv', 'sl1wh', 'sl1wv', 'fi1try', 'fi2try', 'fi3try', 'motry', 'motrz1', 'motrz1e', 'mopush1', 'moth1', 'moth1e', 'moroll1', 'motrx2', 'motry2', 'mopush2', 'moth2', 'moth2e', 'mokev', 'moyaw2', 'moroll2', 'mobdai', 'mobdbo', 'mobdco', 'mobddi', 'mobd', 'bm4trx', 'bm4try', 'mitrx', 'mitry1', 'mitry2', 'mitry3', 'mitry', 'mith', 'miroll', 'mibd1', 'mibd2', 'mibd', 'bm5trx', 'bm5try', 'sl2trxo', 'sl2trxi', 'sl2tryt', 'sl2tryb', 'sl2ch', 'sl2cv', 'sl2wh', 'sl2wv', 'sttrx', 'sttry', 'stpush', 'stth', 'ebtrx', 'ebtry', 'ebtrz', 'sl3wv', 'sl3cv', 'sl3wh', 'sl3ch', 'sl4wv', 'sl4cv', 'sl4wh', 'sl4ch', 'ebfi1', 'ebfi2', 'ebfi3', 'ebfi4', 'attrx', 'attry', 'attrz', 'atpush', 'atth', 'bs1x', 'bs1y', 'bs2x', 'bs2y', 'dttrx', 'dttry', 'dttrz', 'dtpush', 'dtth', 'dettrx', 'hx', 'hy', 'hz', 'hrox', 'hroy', 'hroz', 'eyex', 'eyey', 'eyefoc', 'samx', 'samy', 'scatx', 'scaty']
     assert(h['motornames'] == mlist)
 
+
 def iterate_scans(f, scanlist):
     if isinstance(scanlist[0], dict):
         scans = scanlist
@@ -31,6 +32,8 @@ def scanheader_t(scanlist):
 def nonnil_t(scanlist):
     def nnt(s):
         for val in s['counters'].values():
+            assert(val != [])
+        for val in s['motors'].values():
             assert(val != [])
     iterate_scans(nnt, scanlist)
 
@@ -81,6 +84,7 @@ def read_simple_test():
         assert(p.state == p.done)
         for val in scans[2]['counters'].values():
             assert(len(val) == 101)
+        assert(scans[1]['motors']['Two Theta'] == 0.8)
         nonnil_t(scans)
         scanheader_t(scans)
 
@@ -106,6 +110,7 @@ def oneline_test():
     assert(scans[0][-1][1]['epoch'] == 974979799)
     assert(len(scans) == 2)
     assert(len(scans[1]['counters'].values()) == 9)
+    assert(scans[1]['motors']['Two Theta'] == 0.8)
     nonnil_t(scans)
     scanheader_t(scans)
 
@@ -117,6 +122,7 @@ def comment_end_test():
         scans = p.parse()
         assert(p.state == p.done)
     assert(len(scans) == 3)
+    assert(scans[1]['motors']['Two Theta'] == 0.8)
     nonnil_t(scans)
     scanheader_t(scans)
 
