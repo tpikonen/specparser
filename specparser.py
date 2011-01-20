@@ -132,7 +132,8 @@ class Specparser:
     def __parse_motorpositions(self):
         cl = self.__curline
         n = 0
-        poslist = []
+        motdict = {}
+        motorind = 0
         while True:
             m = re.match('^#([A-Z]+[A-Z0-9]*) *(.*[^\W]).*$', cl)
             if m == None:
@@ -140,10 +141,13 @@ class Specparser:
             ltype, lval = m.group(1,2)
             if ltype != ('P%d' % n):
                 break
-            poslist.extend(map(float, lval.split()))
+            vals = map(float, lval.split())
+            for v in vals:
+                motdict[self.curheader['motornames'][motorind]] = v
+                motorind = motorind + 1
             cl = self.__getline()
             n = n+1
-        return poslist
+        return motdict
 
 
     def __parse_fourc(self):
@@ -281,7 +285,7 @@ class Specparser:
                                 which was used to end counting.
         #Gn     fourc           List of four lists giving four-circle values.
         #Q      hklstart        List of HKL coords at the start of the scan.
-        #Pn     motorpositions  List of floats giving motor positions at
+        #Pn     motors          A dictionary giving motor positions at
                                 the start of the scan.
         #N      ncols           Integer, number of counter columns.
         #L      columns         Names of the columns in the scan.
@@ -347,7 +351,7 @@ class Specparser:
                 sdict['hklstart'] = map(float, lval.split())
             elif ltype == 'P0':
                 # Motor position at the start of the scan
-                sdict['motorpositions'] = self.__parse_motorpositions()
+                sdict['motors'] = self.__parse_motorpositions()
                 cl = self.__curline
                 continue
             elif ltype == 'N':
