@@ -26,15 +26,25 @@ the `parse` method.
 
  >>> scans = p.parse()
 
-The result is a list, where the first item (list element 0) contains a
-list of header blocks. Rest of the list elements (starting from 1) are
-dictionaries corresponding to spec scans.
+The result is a multi-valued dictionary, with scan numbers as keys.
+Usually there is only one scan in the SPEC file with a single scan
+number. In this case, the scans can be accessed with the syntax
+scan[number].
 
  >>> scans[1].keys()
  ['ncols', 'motors', 'number', 'comments', 'time_units', 'date', 'command', 'time', 'npoints', 'unknown_headers', 'counters', 'counting-to', 'fourc', 'columns', 'hklstart']
  >>> scans[1]['counters'].keys()
  ['Monitor', 'Seconds', 'H', 'K', 'Two Theta', 'Epoch', 'Detector 2', 'Detector 3', 'Detector']
  >>> scans[1]['counters']['Detector']
+ [1.0]
+
+The scans can also be accessed with the syntax scans[number, index], in
+case there are more than one scan with the same number. Here number is
+the scan number and index is the repeat of the scan in the SPEC file,
+i.e.  scan[123, 0] is the first scan in the file with number 123,
+scan[123, 1] is the second etc.
+
+ >>> scans[1,0]['counters']['Detector']
  [1.0]
 
 API
