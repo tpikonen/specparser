@@ -478,35 +478,37 @@ class Specparser:
 
 
     def parse(self):
-        """Return a list of scans parsed from the specfile.
+        """Return a dictionary of scans parsed from a specfile.
 
-        This function will return after waiting :attr:`timeout` seconds
-        and can return an incomplete list of scans.
+        The return value is a multi-valued dictionary (see ScanDict)
+        with SPEC scan numbers as keys and one or more scan dicts as
+        values, see :meth:`next_scan`.
 
-        The return tuple (scans, headers) has the following values:
+        Additionally, the return value has a 'headers' attribute
+        containing a list of (scannumber, headerdict) tuples. Here
+        scannumber is the number of scan before which the information in
+        headerdict was read. See :meth:`header`.
 
-        The first element of the return list 'scans' is the list of headers,
-        the rest are scan dictionaries.
-
-        scans[0]  List of (scannumber, headerdict) tuples, where scannumber
-                  is the number of scan before which this header information
-                  was read. See :meth:`header`.
-        scans[1:] List of scan dictionaries, see :meth:`next_scan`
+        This function will return after waiting :attr:`timeout` seconds,
+        so not all the scans may be returned.
         """
-        scans = [None]
+        scans = ScanDict()
+        lastscanno = 0
         try:
             self.header()
             while True:
-                scans.append(self.next_scan())
+                s = self.next_scan()
+                scans[s['number']] = s
+                lastscanno = s['number']
         except InputTimeout:
             if self.state == self.in_scan and (len(scans) <= 1 \
-                or scans[-1]['number'] == self.curscan['number']-1):
-                # Append the last, possibly incomplete scan
-                scans.append(self.curscan)
+                or lastscanno == self.curscan['number']-1):
+                # Add the last, possibly incomplete scan
+                scans[self.curscan['number']] = self.curscan
             elif len(scans) > 1 \
-                and scans[-1]['number'] != self.curscan['number']:
+                and lastscanno != self.curscan['number']:
                 raise ParseError()
         self.state = self.done
-        scans[0] = self.headers
+        scans.headers = self.headers
         return scans
 
