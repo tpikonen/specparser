@@ -16,6 +16,63 @@ class ScanEnd(Exception):
     """Raised when end of scan is encountered when reading points"""
     pass
 
+
+class ScanDict(dict):
+    """Multi-value dict with syntactic sugar for getting items.
+
+    The standard set method (D[k] = v) appends values to lists associated
+    with each key.
+
+    When getting an item, keys can be either (key, index) tuples
+    or just keys of a non-tuple type.
+
+    D[k, i] returns i:th value in the list for key k.
+    D[k] returns a list of all values, except in the special
+    (and common) case where there is only one value, in which case
+    the value is return by itself (i.e. not inside a list).
+
+    Methods D.getraw() and D.setraw() are provided to access the
+    underlying standard Python dictionary.
+    """
+    def setraw(self, k, v):
+        dict.__setitem__(self, k, v)
+
+    def __setitem__(self, k, v):
+        self.setdefault(k, []).append(v)
+
+    def getraw(self, k):
+        return dict.__getitem__(self, k)
+
+    def __getitem__(self, k):
+        try:
+            return self.getraw(k[0])[k[1]]
+        except TypeError:
+            ll = self.getraw(k)
+            if len(ll) > 1:
+                return ll
+            else:
+                return ll[0]
+
+    def keys(self):
+        ks = []
+        for k in dict.keys(self):
+            ll = self.getraw(k)
+            for i in xrange(len(ll)):
+                ks.append((k, i))
+        return ks
+
+    def values(self):
+        vs = []
+        for k in dict.keys(self):
+            ll = self.getraw(k)
+            for i in xrange(len(ll)):
+                vs.append(ll[i])
+        return vs
+
+    def items(self):
+        return zip(self.keys(), self.values())
+
+
 def is_blankline(line):
     m = re.match('^\W*$', line)
     return (m != None)
