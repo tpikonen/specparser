@@ -14,28 +14,20 @@ def headerparse_t(p):
     assert(h['motornames'] == mlist)
 
 
-def iterate_scans(f, scanlist):
-    if isinstance(scanlist[0], dict):
-        scans = scanlist
-    else:
-        scans = scanlist[1:]
-    for s in scans:
-        f(s)
 
-
-def scanheader_t(scanlist):
+def scanheader_t(scans):
     def sht(s):
         assert(s['ncols'] == len(s['columns']))
-    iterate_scans(sht, scanlist)
+    map(sht, scans.values())
 
 
-def nonnil_t(scanlist):
+def nonnil_t(scans):
     def nnt(s):
         for val in s['counters'].values():
             assert(val != [])
         for val in s['motors'].values():
             assert(val != [])
-    iterate_scans(nnt, scanlist)
+    map(nnt, scans.values())
 
 
 def separate_test():
@@ -61,18 +53,18 @@ def pickled_test():
         scans = p.parse()
     with open(datadir + 'mini.pickle') as fp:
         pscns = pickle.load(fp)
-    assert(pscns[0][-1][0] == scans[0][-1][0])
-    hd = scans[0][-1][1]
-    phd = pscns[0][-1][1]
+    assert(pscns.headers[-1][0] == scans.headers[-1][0])
+    hd = scans.headers[-1][1]
+    phd = pscns.headers[-1][1]
     for k in hd.keys():
         print(k)
         assert(phd[k] == hd[k])
     assert(hd == phd)
-    for i in range(1, len(scans)):
-        print('Scan %d' % i)
-        for k in scans[i].keys():
+    for t in scans.keys():
+        print('Scan ' + str(t))
+        for k in scans[t].keys():
             print('    %s' % k)
-            assert(scans[i][k] == pscns[i][k])
+            assert(scans[t][k] == pscns[t][k])
     assert(pscns == scans)
 
 
@@ -95,8 +87,8 @@ def zeroline_test():
         assert(p.state == p.initialized)
         scans = p.parse()
         assert(p.state == p.done)
-    assert(len(scans) == 1)
-    assert(scans[0][-1][1]['epoch'] == 974979799)
+    assert(len(scans) == 0)
+    assert(scans.headers[-1][1]['epoch'] == 974979799)
     nonnil_t(scans)
     scanheader_t(scans)
 
@@ -107,8 +99,8 @@ def oneline_test():
         assert(p.state == p.initialized)
         scans = p.parse()
         assert(p.state == p.done)
-    assert(scans[0][-1][1]['epoch'] == 974979799)
-    assert(len(scans) == 2)
+    assert(scans.headers[-1][1]['epoch'] == 974979799)
+    assert(len(scans) == 1)
     assert(len(scans[1]['counters'].values()) == 9)
     assert(scans[1]['motors']['Two Theta'] == 0.8)
     nonnil_t(scans)
@@ -121,7 +113,7 @@ def comment_end_test():
         assert(p.state == p.initialized)
         scans = p.parse()
         assert(p.state == p.done)
-    assert(len(scans) == 3)
+    assert(len(scans) == 2)
     assert(scans[1]['motors']['Two Theta'] == 0.8)
     nonnil_t(scans)
     scanheader_t(scans)
